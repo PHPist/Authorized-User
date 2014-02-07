@@ -8,7 +8,7 @@ $PartnerUser = new User();
 
 
 if ($_POST['UploadUser']){
-	$regenError = $PartnerUser->rgenerationePass($_POST['UserLogin']);
+	$responsRgenerationePass = $PartnerUser->rgenerationePass($_POST['UserLogin']);
 	}
 
 
@@ -34,9 +34,14 @@ if ($_POST['UploadUser']){
   <label for="UserLogin">Login/E-mail/Phone: </label><input id="UserLogin" name="UserLogin" type="text" /><br/>
   <input name="UploadUser" type="submit" value="Востановить пароль" />
   </p>
-  <? if ($regenError == 1){ ?>
-  <p><span style="color:red;">Введенные данные не имеют привязки к действующему аккаунту!</span></p>
+  <? if ($responsRgenerationePass['responseStatus'] == 'error'){ ?>
+  <p><span style="color:red;"><?=$responsRgenerationePass['error'][0]?></span></p>
   <? }  ?>
+  
+  <? if ($responsRgenerationePass['responseStatus'] == 'good'){ ?>
+  <p><span style="color:#060;"><?=$responsRgenerationePass['good'][0]?></span></p>
+  <? }  ?>  
+  
 </form>
 </div>
 

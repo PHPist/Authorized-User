@@ -4,8 +4,9 @@ include('php_function/ClassUser.php');
 $PartnerUser = new User();
 
 if ($_POST){
-	$errorReg = $PartnerUser->registrationUser($_POST['UserName'], $_POST['UserLogin'], $_POST['UserEmail'], $_POST['UserPhone'], $_POST['UserPass'], $_POST['UserRePass'], $_POST['UserDog']);
-	if ($errorReg == 'no' && $PartnerUser->AuthorizedUser($_POST['UserLogin'], $_POST['UserPass'], 'NO')){
+	$responseRegistrationUser = $PartnerUser->registrationUser($_POST['UserName'], $_POST['UserLogin'], $_POST['UserEmail'], $_POST['UserPhone'], $_POST['UserPass'], $_POST['UserRePass'], $_POST['UserDog']);
+	if ($responseRegistrationUser['responseStatus'] == 'good'){
+		$PartnerUser->AuthorizedUser($_POST['UserLogin'], $_POST['UserPass'], 'NO');
 		header('Location: index.php');
 		}
 }
@@ -38,8 +39,8 @@ if ($_POST){
 <input name="UserDog" type="checkbox" value="Y" /><span> согласен</span><br/>
 <input name="UploadUser" type="submit" value="зарегистрироваться" />
 
-<? if ($errorReg == (1||2||3||4||5||6||7||8)){ ?>
-<p><span style="color:red;">ошибка регистрации (error <?= $errorReg ?>)!</a></p>
+<? if ($responseRegistrationUser['responseStatus'] == 'error'){ ?>
+<p><span style="color:red;"><?= current($responseRegistrationUser['error']) ?></a></p>
 <? } ?>
 </form>
 </div>

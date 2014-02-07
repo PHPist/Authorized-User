@@ -6,8 +6,9 @@ include('php_function/ClassUser.php');
 $PartnerUser = new User();
 
 if ($_POST['UploadUser']){
-	$autError = $PartnerUser->AuthorizedUser($_POST['UserLogin'], $_POST['UserPass'], $_POST['SaveUser']);
+	$responseAuthorizedUser = $PartnerUser->AuthorizedUser($_POST['UserLogin'], $_POST['UserPass'], $_POST['SaveUser']);
 	}
+
 $PartnerUser->getInfoUser();
 
 ?>
@@ -37,11 +38,15 @@ $PartnerUser->getInfoUser();
   <input name="UploadUser" type="submit" value="Залогиниться" />
   </p>
   
-  <? if ($autError == 1){?>
-  <p><span style="color:red;">Не верная пара логин/пароль!</span><br/><a href="/regenerationPass.php">Забыли пароль...</a></p>
+  <? if ($responseAuthorizedUser['responseStatus'] == 'error'){?>
+  <p><span style="color:red;"><?=current($responseAuthorizedUser['error'])?></span></p>
   <? } ?>
+ 
   
-  <p><a href="/registration.php">Зарегистрироваться</a></p>
+  <p>
+  <a href="/regenerationPass.php">Забыли пароль...</a> <br/>
+  <a href="/registration.php">Зарегистрироваться</a>
+  </p>
 </form>
 </div>
 <? } else {?>

@@ -4,6 +4,42 @@ session_start();
 class User{
 	
 	
+	protected
+	$config = array(
+		'mainsmsCompany'=>'Uppelsin',
+		'mainsmsKey'=>'bd662368957ce',
+		'mainsmsSender'=>'Gunko.m.',
+		),
+	$error = array(
+		0 => 'Неверный логин/телефон/e-mail',
+		1 => 'Поле логин/телефон/e-mail пустое',
+		2 => 'Некорректный номер телефона',
+		3 => 'Некорректный заполненны ФИО',
+		4 => 'Некорректый логин',
+		5 => 'Некорректный e-mail',
+		6 => 'Пароль и подтверждение пароля не совпадают',
+		7 => 'Не согласились с условиями регистрации',
+		8 => 'Указанный вами логин уже зарегистрирован в системе',
+		9 => 'Указанный вами телефон уже зарегистрирован в системе',
+		10 => 'Указанный вами e-mail уже зарегистрирован в системе',
+		11 => 'В пароле недопустимые символы',
+		12 => 'Ошибка записи базы данных',
+		),
+	$good = array(
+		0=>'Ожидайте... В течении 2-х минут на номер {UserPhone} придет СМС сообщение  с разовым паролем для авторизации.',
+		1=>'На вашу электронную почту {UserEmail} направленно письмо содержащее разовый пароль для авторизации.',
+		),
+	$message = array(
+		0=>'Разовый проль для входа: {NewPasw}',
+		1=>'Воcстановление доступа affiliat.gresso.ru',
+		),
+	$responseStatus = array(
+		'error' => 'error',
+		'good' => 'good',
+		);
+	
+	
+	
 	function __construct(){
 		include('mainsms.class.php');
 		}
@@ -53,7 +89,10 @@ class User{
 	*/
 	
 	function AuthorizedUser($login, $pasword, $save){
-		 	//перехватить логин в виде телефон
+		 	$login = mysql_real_escape_string($login);
+			$pasword = mysql_real_escape_string($pasword);
+
+			//перехватить логин в виде телефон
 			if ($this->ifPhgone($login)){
 				$login = $this->resizaPhone($login);
 				}
@@ -77,12 +116,14 @@ class User{
 					}else{
 					setcookie("SesionId", "", time() - 3600, "/");
 					}
-			return $error = 'no';	
+			$return['responseStatus'] = $this->responseStatus['good'];	
 			}
 			else{
-				$error = 1;//неверное имя пользователя и пароль
-				return $error;
+				$return['responseStatus'] = $this->responseStatus['error'];
+				$return['error'][0] = $this->error[0];
 				}
+			
+			return $return;
 		}
 	
 	function LogOut(){
@@ -103,69 +144,85 @@ class User{
 		$UserPass = mysql_real_escape_string($UserPass);
 		$UserRePass = mysql_real_escape_string($UserRePass);
 		$UserDog = mysql_real_escape_string($UserDog);
-		$error = false;
 		
 		if ($UserPhone){
 			$UserPhone = $this->ClearPhone($UserPhone);
 			if (!$this->ValidPhone($UserPhone)){
-				$error = 1;					
+				$return['error'][0]= $this->error[2];					
 				}
 			} else {
 				$UserPhone = "NULL";
 				}
 			
-		if (!$UserName  && !$error){
-			$error = 2;
+		if (!$UserName){
+			$return['error'][1] = $this->error[3];
 			}
 				
-		if (!$this->ValidPasw($UserPass) && !$error){
-			$error = 3;					
+		if (!$this->ValidPasw($UserPass)){
+			$return['error'][2] = $this->error[11];				
 			}			
 						
-		if (!$this->ValidLogin($UserLogin) && !$error){
-			$error = 4;					
+		if (!$this->ValidLogin($UserLogin)){
+			$return['error'][3] = $this->error[4];						
 			}		
 			
-		if (!$this->ValidEmail($UserEmail) && !$error){
-			$error = 5;					
+		if (!$this->ValidEmail($UserEmail)){
+			$return['error'][4] = $this->error[5];					
 			}	
 			
-		if ($UserPass != $UserRePass  && !$error){
-			$error = 6;
+		if ($UserPass != $UserRePass){
+			$return['error'][5] = $this->error[6];	
 			}
 		if ($UserDog != "Y"){
-			$error = 7;
+			$return['error'][6] = $this->error[7];
 			}
 			
 		$UserPass = md5($UserPass);	
 		
-		$t1_query = "select id from user where login = '{$UserLogin}' or `e-mail` = '{$UserEmail}' or phone = {$UserPhone};";
+		$t1_query = "select id from user where login = '{$UserLogin};";
 		$t1_rezult =  mysql_query($t1_query);
 		
 		if (mysql_num_rows($t1_rezult)!=0){
-			$error = 8;
+			$return['error'][7] = $this->error[8];
 			}
 		
+		$t1_query = "select id from user where `e-mail` = '{$UserEmail}';";
+		$t1_rezult =  mysql_query($t1_query);
 		
+		if (mysql_num_rows($t1_rezult)!=0){
+			$return['error'][8] = $this->error[10];
+			}	
+			
+		$t1_query = "select id from user where phone = {$UserPhone};";
+		$t1_rezult =  mysql_query($t1_query);
+		
+		if (mysql_num_rows($t1_rezult)!=0){
+			$return['error'][9] = $this->error[9];
+			}					
 					
-		if ($error == false){
+		if (!$return['error']){
 		
 			$mysql_query = 
 				"INSERT INTO user
 				(name, login, `e-mail`, phone, password, data_reg)
 				VALUES ('{$UserName}', '{$UserLogin}', '{$UserEmail}', {$UserPhone}, '{$UserPass}', NOW())";
 				
-				
-				if (mysql_query($mysql_query)){
-				return $error = 'no';
-				} else {return $error = 8;}
+				if (!mysql_query($mysql_query)){
+				$return['error'][10] = $this->error[12];
+				} 
 			}
-			else{ return $error;}
+		
+		if (!$return['error']){
+			$return['responseStatus'] = $this->responseStatus['good'];			
+			} else {
+				$return['responseStatus'] = $this->responseStatus['error'];
+				}
+		return $return;
 		}		
 
 	
 	/*
-	востановление пароля
+	востановление пароля по логину/телефону/email
 	*/
 	
 	function rgenerationePass($UserLogin){
@@ -173,22 +230,36 @@ class User{
 			if ($this->ifPhgone($UserLogin)){
 				$UserLogin = $this->resizaPhone($UserLogin);
 				}
+
 			$musql_query = "select id, `e-mail` from user where (login = '{$UserLogin}' or `e-mail`='{$UserLogin}' or phone='{$UserLogin}');";
 			$rezult = mysql_query($musql_query);
 			$userData = mysql_fetch_assoc($rezult);
 			
 			if (mysql_num_rows($rezult) != 1){
-				$error = 1;
+				$return['error'][0] = $this->error[0];
 				}
+				
+			$musql_query = "select id, `e-mail` from user where (login = '{$UserLogin}' or `e-mail`='{$UserLogin}' or phone='{$UserLogin}');";
+			$rezult = mysql_query($musql_query);
+			$userData = mysql_fetch_assoc($rezult);
+			
+			if (mysql_num_rows($rezult) != 1){
+				$return['error'][0] = $this->error[0];
+				}				
+				
+			$musql_query = "select id, `e-mail` from user where (login = '{$UserLogin}' or `e-mail`='{$UserLogin}' or phone='{$UserLogin}');";
+			$rezult = mysql_query($musql_query);
+			$userData = mysql_fetch_assoc($rezult);
+			
+			if (mysql_num_rows($rezult) != 1){
+				$return['error'][0] = $this->error[0];
+				}			
+				
 			if (!$UserLogin){
-				$error = 2;
+				$return['error'][1] = $this->error[1];
 				}
 			
-			if (!$error){
-				$error = 'no';
-				}
-			
-			if ($error == 'no'){
+			if (!$return['error']){
 			//генерим пароль
 			$newPasw = $this->generate_password(9);
 			$newPaswMD5 = md5($newPasw);
@@ -198,16 +269,20 @@ class User{
 							password='{$newPaswMD5}'
 						WHERE id = {$userData['id']};"
 						);
-			}
-			
-			if ($error == 'no' && $this->ifPhgone($UserLogin)){//шлем СМС
-				$maimSMS = new MainSMS('Uppelsin' , 'bd662368957ce', false, false );
-				$maimSMS->sendSMS ($UserLogin , 'Разовый проль для входа: '.$newPasw , 'Gunko.m.');
+			$return['responseStatus'] = $this->responseStatus['good'];
+			} else{ $return['responseStatus'] = $this->responseStatus['error']; }
+
+
+			if (!$return['error'] && $this->ifPhgone($UserLogin)){//шлем СМС
+				$maimSMS = new MainSMS($this->config['mainsmsCompany'] , $this->config['mainsmsKey'], false, false );
+				$maimSMS->sendSMS ($UserLogin , $this->MessageConstruct($this->message[0], 'NewPasw', $newPasw) , $this->config['mainsmsSender']);
+				$return['good'][0] = $this->MessageConstruct($this->good[0], 'UserPhone', $UserLogin);;
 				}
-				else if ($error == 'no'){//шлем пароль на почту
-					mail($userData['e-mail'], "Воcстановление доступа affiliat.gresso.ru", "Разовый проль для входа: ".$newPasw);
+				else if (!$return['error']){//шлем пароль на почту
+					mail($userData['e-mail'], $this->message[1], $this->MessageConstruct($this->message[0], 'NewPasw', $newPasw));
+					$return['good'][0] =  $this->MessageConstruct($this->good[1], 'UserEmail', $userData['e-mail']);
 					}
-			return $error;
+			return $return;
 		}
 	
 	
@@ -289,7 +364,10 @@ class User{
 		}
 		return $pass;
 	  }
-	
+	  
+	private function MessageConstruct($mess, $in, $out){
+		return str_replace("{".$in."}", $out, $mess);
+		}
 	
 }
 
