@@ -2,8 +2,13 @@
 include('php_function/config.php');
 include('php_function/ClassUser.php');
 $PartnerUser = new User();
-$PartnerUser->registrationUser('Вася Пупкин', 'loginm', 'email@mail.com', '+79677019182', '16111982', '16111982');
 
+if ($_POST){
+	$errorReg = $PartnerUser->registrationUser($_POST['UserName'], $_POST['UserLogin'], $_POST['UserEmail'], $_POST['UserPhone'], $_POST['UserPass'], $_POST['UserRePass'], $_POST['UserDog']);
+	if ($errorReg == 'no' && $PartnerUser->AuthorizedUser($_POST['UserLogin'], $_POST['UserPass'], 'NO')){
+		header('Location: index.php');
+		}
+}
 ?>
 
 
@@ -32,6 +37,10 @@ $PartnerUser->registrationUser('Вася Пупкин', 'loginm', 'email@mail.co
 <label for="UserRePass">RePassword: </label><input id="UserRePass" name="UserRePass" type="password" /><br/>
 <input name="UserDog" type="checkbox" value="Y" /><span> согласен</span><br/>
 <input name="UploadUser" type="submit" value="зарегистрироваться" />
+
+<? if ($errorReg == (1||2||3||4||5||6||7||8)){ ?>
+<p><span style="color:red;">ошибка регистрации (error <?= $errorReg ?>)!</a></p>
+<? } ?>
 </form>
 </div>
 
