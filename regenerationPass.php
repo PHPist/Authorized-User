@@ -8,7 +8,7 @@ $PartnerUser = new User();
 
 
 if ($_POST['UploadUser']){
-	$responsRgenerationePass = $PartnerUser->rgenerationePass($_POST['UserLogin']);
+	$responsRgenerationePass = $PartnerUser->rgenerationePass($_POST['UserLogin'], $_POST['UserCapcha']);
 	}
 
 
@@ -31,11 +31,15 @@ if ($_POST['UploadUser']){
 <div style="border:red solid 1px; width:500px;">
 <form action="" method="post">
   <p>
-  <label for="UserLogin">Login/E-mail/Phone: </label><input id="UserLogin" name="UserLogin" type="text" /><br/>
-  <input name="UploadUser" type="submit" value="Востановить пароль" />
+ 	<label for="UserLogin">Login/E-mail/Phone: </label><input id="UserLogin" name="UserLogin" type="text" /><br/>
+    <a href="javascript:void(0);" onclick="document.getElementById('capcha-image').src='capcha/antibot.php?rid=' + Math.random();">
+    <img src='capcha/antibot.php' id='capcha-image' title="Кликни чтобы обновить картинку">
+    </a><br/>
+    <input type="text" name="UserCapcha"><br/>
+    <input name="UploadUser" type="submit" value="Востановить пароль" />
   </p>
   <? if ($responsRgenerationePass['responseStatus'] == 'error'){ ?>
-  <p><span style="color:red;"><?=$responsRgenerationePass['error'][0]?></span></p>
+  <p><span style="color:red;"><?=current($responsRgenerationePass['error'])?></span></p>
   <? }  ?>
   
   <? if ($responsRgenerationePass['responseStatus'] == 'good'){ ?>

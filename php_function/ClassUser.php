@@ -6,9 +6,10 @@ class User{
 	
 	protected
 	$config = array(
-		'mainsmsCompany'=>'Uppelsin',
-		'mainsmsKey'=>'bd662368957ce',
-		'mainsmsSender'=>'Gunko.m.',
+		'mainsmsCompany' => 'Uppelsin',
+		'mainsmsKey' => 'bd662368957ce',
+		'mainsmsSender' => 'Gunko.m.',
+		'colErrorAutor' => 5, //Допустимое количество ошибок авторизации
 		),
 	$error = array(
 		0 => 'Неверный логин/телефон/e-mail',
@@ -24,6 +25,7 @@ class User{
 		10 => 'Указанный вами e-mail уже зарегистрирован в системе',
 		11 => 'В пароле недопустимые символы',
 		12 => 'Ошибка записи базы данных',
+		13 => 'Не верный код с картинки',
 		),
 	$good = array(
 		0=>'Ожидайте... В течении 2-х минут на номер {UserPhone} придет СМС сообщение  с разовым паролем для авторизации.',
@@ -78,6 +80,7 @@ class User{
 			$rezult = mysql_query($mysql_qury);
 			$this->sesion = mysql_fetch_assoc($rezult);
 			$this->userInfo = mysql_fetch_assoc(mysql_query("select*from `user` where id = {$this->sesion['idUser']};"));
+			//mysql_query("UPDATE user_sesion SET data_start=NOW() WHERE  id = {$_COOKIE['SesionId']};");
 			}
 		}
 	
@@ -119,11 +122,30 @@ class User{
 			$return['responseStatus'] = $this->responseStatus['good'];	
 			}
 			else{
+				//Считаем количество ошибок в случае превышения допустимого количества показываем форму с капчей
+				if (!$_SESSION['colAutorError']){$_SESSION['colAutorError'] = 0; }
+				$_SESSION['colAutorError']++;
+				
+				if ($_SESSION['colAutorError'] > $this->config['colErrorAutor']){
+					header('Location: login.php');
+					}				
 				$return['responseStatus'] = $this->responseStatus['error'];
 				$return['error'][0] = $this->error[0];
 				}
 			
 			return $return;
+		}
+	
+	function AuthorizedUserCapcha($login, $pasword, $save, $capcha){
+		$_SESSION['colAutorError'] = 0;
+		if (!$capcha || $capcha != $_SESSION['sec_code_session']){
+			$return['responseStatus'] = $this->responseStatus['error'];
+			$return['error'][0] = $this->error[13];
+			return $return;
+			}
+			else{
+				return $this->AuthorizedUser($login, $pasword, $save);
+				}
 		}
 	
 	function LogOut(){
@@ -225,7 +247,7 @@ class User{
 	востановление пароля по логину/телефону/email
 	*/
 	
-	function rgenerationePass($UserLogin){
+	function rgenerationePass($UserLogin, $UserCapcha){
 		//перехватить логин в виде телефон
 			if ($this->ifPhgone($UserLogin)){
 				$UserLogin = $this->resizaPhone($UserLogin);
@@ -259,6 +281,10 @@ class User{
 				$return['error'][1] = $this->error[1];
 				}
 			
+			if (!$UserCapcha || $UserCapcha != $_SESSION['sec_code_session']){
+				$return['error'][2] = $this->error[13];
+				}			
+					
 			if (!$return['error']){
 			//генерим пароль
 			$newPasw = $this->generate_password(9);
